@@ -6,6 +6,7 @@
 #include "SWeapon.h"
 #include "SWeaponPickup.h"
 #include "SCharacterMovementComponent.h"
+#include "SPlayerCameraManager.h"
 #include "SCarryObjectComponent.h"
 #include "SBaseCharacter.h"
 #include "Runtime/Engine/Classes/Animation/AnimInstance.h"
@@ -74,6 +75,14 @@ void ASCharacter::BeginPlay()
 		FTimerHandle Handle;
 		GetWorldTimerManager().SetTimer(Handle, this, &ASCharacter::IncrementHunger, IncrementHungerInterval, true);
 	}
+
+	if (APlayerController* PC = Cast<APlayerController>(GetController()))
+	{
+		if (ASPlayerCameraManager* CameraManager = Cast<ASPlayerCameraManager>(PC->PlayerCameraManager))
+		{
+			CameraManager->ZoomingFOV = FocusingFOV;
+		}
+	}
 }
 
 
@@ -131,8 +140,8 @@ void ASCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputCo
 	// Movement
 	PlayerInputComponent->BindAxis("MoveForward", this, &ASCharacter::MoveForward);
 	PlayerInputComponent->BindAxis("MoveRight", this, &ASCharacter::MoveRight);
-	PlayerInputComponent->BindAxis("Turn", this, &APawn::AddControllerYawInput);
-	PlayerInputComponent->BindAxis("LookUp", this, &APawn::AddControllerPitchInput);
+	PlayerInputComponent->BindAxis("Turn", this, &ASCharacter::AddControllerYawInput);
+	PlayerInputComponent->BindAxis("LookUp", this, &ASCharacter::AddControllerPitchInput);
 
 	PlayerInputComponent->BindAction("SprintHold", IE_Pressed, this, &ASCharacter::OnStartSprinting);
 	PlayerInputComponent->BindAction("SprintHold", IE_Released, this, &ASCharacter::OnStopSprinting);
@@ -167,25 +176,49 @@ void ASCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputCo
 
 void ASCharacter::MoveForward(float Val)
 {
-	if (Controller && Val != 0.f)
+	if (!GetCameraFocusing())
 	{
-		// Limit pitch when walking or falling
-		const bool bLimitRotation = (GetCharacterMovement()->IsMovingOnGround() || GetCharacterMovement()->IsFalling());
-		const FRotator Rotation = bLimitRotation ? GetActorRotation() : Controller->GetControlRotation();
-		const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::X);
+		if (Controller && Val != 0.f)
+		{
+			// Limit pitch when walking or falling
+			const bool bLimitRotation = (GetCharacterMovement()->IsMovingOnGround() || GetCharacterMovement()->IsFalling());
+			const FRotator Rotation = bLimitRotation ? GetActorRotation() : Controller->GetControlRotation();
+			const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::X);
 
-		AddMovementInput(Direction, Val);
+			AddMovementInput(Direction, Val);
+		}
 	}
 }
 
 
 void ASCharacter::MoveRight(float Val)
 {
-	if (Val != 0.f)
+	if (!GetCameraFocusing())
 	{
-		const FRotator Rotation = GetActorRotation();
-		const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::Y);
-		AddMovementInput(Direction, Val);
+		if (Val != 0.f)
+		{
+			const FRotator Rotation = GetActorRotation();
+			const FVector Direction = FRotationMatrix(Rotation).GetScaledAxis(EAxis::Y);
+			AddMovementInput(Direction, Val);
+		}
+	}
+}
+
+
+void ASCharacter::AddControllerYawInput(float Val)
+{
+	if (!GetCameraFocusing())
+	{
+		this->APawn::AddControllerYawInput(Val);
+	}
+}
+
+
+void ASCharacter::AddControllerPitchInput(float Val)
+{
+	if (!GetCameraFocusing())
+	{
+		this->APawn::AddControllerPitchInput(Val);
 	}
 }
 
@@ -271,7 +304,10 @@ void ASCharacter::OnEndTargeting()
 
 void ASCharacter::OnJump()
 {
-	SetIsJumping(true);
+	if (!GetCameraFocusing())
+	{
+		SetIsJumping(true);
+	}
 }
 
 
@@ -446,13 +482,13 @@ void ASCharacter::OnDeath(float KillingDamage, FDamageEvent const& DamageEvent, 
 bool ASCharacter::CanFire() const
 {
 	/* Add your own checks here, for example non-shooting areas or checking if player is in an NPC dialogue etc. */
-	return IsAlive();
+	return IsAlive() && !GetCameraFocusing();
 }
 
 
 bool ASCharacter::CanReload() const
 {
-	return IsAlive();
+	return IsAlive() && !GetCameraFocusing();
 }
 
 
@@ -635,6 +671,18 @@ void ASCharacter::PawnClientRestart()
 	SetCurrentWeapon(CurrentWeapon);
 }
 
+
+bool ASCharacter::GetCameraFocusing() const
+{
+	if (APlayerController* PC = Cast<APlayerController>(GetController()))
+	{
+		if (ASPlayerCameraManager* CameraManager = Cast<ASPlayerCameraManager>(PC->PlayerCameraManager))
+		{
+			return CameraManager->IsFocusing();
+		}
+	}
+	return false;
+}
 
 void ASCharacter::OnReload()
 {

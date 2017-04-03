@@ -20,7 +20,31 @@ class SURVIVALGAME_API ASPlayerCameraManager : public APlayerCameraManager
 
 	virtual void BeginPlay() override;
 
+public:
+
+	UFUNCTION(BlueprintCallable, Category = "Focus")
+	void LookAtActor(AActor* Actor, float TimeToFocusOnActor);
+
+	bool IsFocusing();
+
+private:
+
+	void PerformZooming(float TargetFOV, float DeltaTime, float Speed);
+
+	void StopLookingAtActor();
+
+	void CompleteUnFocus();
+
+	/* Value overridden to true if MyPawn->IsTargeting() is true, be aware */
+	bool bWantsToZoom;
+
+	bool bFocusing;
+
 	float CurrentCrouchOffset;
+
+	AActor* TargetActor;
+
+	FRotator OriginalRotation;
 
 	/* Maximum camera offset applied when crouch is initiated. Always lerps back to zero */
 	float MaxCrouchOffsetZ;
@@ -37,4 +61,12 @@ class SURVIVALGAME_API ASPlayerCameraManager : public APlayerCameraManager
 
 	/* aiming down sight / zoomed FOV */
 	float TargetingFOV;
+
+	/* FOV to transition to while at max speed. When not at max speed, FOV is somewhere between NormalFOV and this value */
+	float MaxSpeedFOV;
+
+public:
+
+	/* Zooming on POI FOV */
+	float ZoomingFOV;
 };

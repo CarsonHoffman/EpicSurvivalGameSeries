@@ -3,13 +3,14 @@
 #include "SurvivalGame.h"
 #include "SPlayerCameraManager.h"
 #include "SCharacter.h"
-
+#include "Kismet/KismetMathLibrary.h"
 
 ASPlayerCameraManager::ASPlayerCameraManager(const class FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	NormalFOV = 90.0f;
 	TargetingFOV = 65.0f;
+	MaxSpeedFOV = 115.f;
 
 	ViewPitchMin = -80.0f;
 	ViewPitchMax = 87.0f;
@@ -38,15 +39,38 @@ void ASPlayerCameraManager::BeginPlay()
 // 	}
 }
 
-
 void ASPlayerCameraManager::UpdateCamera(float DeltaTime)
 {
 	ASCharacter* MyPawn = PCOwner ? Cast<ASCharacter>(PCOwner->GetPawn()) : nullptr;
 	if (MyPawn)
 	{
-		const float TargetFOV = MyPawn->IsTargeting() ? TargetingFOV : NormalFOV;
-		DefaultFOV = FMath::FInterpTo(DefaultFOV, TargetFOV, DeltaTime, 20.0f);
-		SetFOV(DefaultFOV);
+		if (bWantsToZoom)
+		{
+			PerformZooming(ZoomingFOV, DeltaTime, 5.f);
+		}
+		else if (MyPawn->IsTargeting())
+		{
+			PerformZooming(TargetingFOV, DeltaTime, 10.f);
+		}
+		else
+		{
+			float NewFOV = FMath::Lerp(NormalFOV, MaxSpeedFOV, MyPawn->GetVelocity().Size() / 1000.f);
+			PerformZooming(NewFOV, DeltaTime, 10.f);
+		}
+	}
+
+	if (MyPawn && bFocusing)
+	{
+		FRotator RotateTo = TargetActor ? UKismetMathLibrary::FindLookAtRotation(MyPawn->GetCameraComponent()->GetComponentLocation(), TargetActor->GetActorLocation()) : OriginalRotation;
+		FRotator NewRotation = FMath::RInterpTo(MyPawn->GetCameraComponent()->GetComponentRotation(), RotateTo, DeltaTime, 5.f);
+		MyPawn->GetCameraComponent()->SetWorldRotation(NewRotation);
+
+		// Once we're back to our original position, stop focusing
+		if (NewRotation.Equals(OriginalRotation, 0.05f))
+		{
+			MyPawn->GetCameraComponent()->SetWorldRotation(OriginalRotation);
+			CompleteUnFocus();
+		}
 	}
 
 	/* Apply smooth camera lerp between crouch toggling */
@@ -71,4 +95,42 @@ void ASPlayerCameraManager::UpdateCamera(float DeltaTime)
 	}
 
 	Super::UpdateCamera(DeltaTime);
+}
+
+void ASPlayerCameraManager::PerformZooming(float TargetFOV, float DeltaTime, float Speed)
+{
+	DefaultFOV = FMath::FInterpTo(DefaultFOV, TargetFOV, DeltaTime, Speed);
+	SetFOV(DefaultFOV);
+}
+
+void ASPlayerCameraManager::LookAtActor(AActor* Actor, float TimeToFocusOnActor)
+{
+	bWantsToZoom = true;
+	bFocusing = true;
+	TargetActor = Actor;
+
+	ASCharacter* MyPawn = PCOwner ? Cast<ASCharacter>(PCOwner->GetPawn()) : nullptr;
+	if (MyPawn)
+	{
+		OriginalRotation = MyPawn->GetCameraComponent()->GetComponentRotation();
+	}
+
+	FTimerHandle Handle;
+	GetWorld()->GetTimerManager().SetTimer(Handle, this, &ASPlayerCameraManager::StopLookingAtActor, TimeToFocusOnActor, false);
+}
+
+bool ASPlayerCameraManager::IsFocusing()
+{
+	return bFocusing;
+}
+
+void ASPlayerCameraManager::StopLookingAtActor()
+{
+	TargetActor = nullptr;
+	bWantsToZoom = false;
+}
+
+void ASPlayerCameraManager::CompleteUnFocus()
+{
+	bFocusing = false;
 }

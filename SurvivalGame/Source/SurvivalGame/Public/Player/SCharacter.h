@@ -69,6 +69,10 @@ public:
 
 	virtual void MoveRight(float Val);
 
+	virtual void AddControllerYawInput(float Val) override;
+
+	virtual void AddControllerPitchInput(float Val) override;
+
 	/* Client mapped to Input */
 	void OnCrouchToggle();
 
@@ -211,6 +215,8 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Inventory")
 	float DropWeaponMaxDistance;
 
+	bool GetCameraFocusing() const;
+
 	void OnReload();
 
 	/* Mapped to input */
@@ -298,4 +304,9 @@ public:
 		NOTE: Requires an AnimNotify created in the Equip animation to tell us when to swap the meshes. */
 	UFUNCTION(BlueprintCallable, Category = "Animation")
 	void SwapToNewWeaponMesh();
+
+protected:
+
+	UPROPERTY(EditDefaultsOnly, Category = "Focusing")
+	float FocusingFOV;
 };
