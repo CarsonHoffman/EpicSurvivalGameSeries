@@ -6,9 +6,13 @@ Saved
 *.suo
 *.pdb
 *.exe
+*.dll
 *-DebugGame.dll
 SurvivalGame/Binaries/Win64/SurvivalGame.exp
 SurvivalGame/Binaries/Win64/SurvivalGame.lib
+SurvivalGame/Binaries/*
+SurvivalGame/*.db
+SurvivalGame/*.opendb
 SurvivalGame/Releases
 *.log
 *.target.xml
