@@ -22,8 +22,9 @@ class SURVIVALGAME_API ASPlayerCameraManager : public APlayerCameraManager
 
 public:
 
+	// Function to call for looking at an actor.
 	UFUNCTION(BlueprintCallable, Category = "Focus")
-	void LookAtActor(AActor* Actor, float TimeToFocusOnActor);
+	void LookAtActor(AActor* Actor, float TimeInSecondsToFocusOnActor);
 
 	bool IsFocusing();
 

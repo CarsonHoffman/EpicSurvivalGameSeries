@@ -176,6 +176,7 @@ void ASCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputCo
 
 void ASCharacter::MoveForward(float Val)
 {
+	// If camera is focusing on an actor, do nothing
 	if (!GetCameraFocusing())
 	{
 		if (Controller && Val != 0.f)
@@ -193,6 +194,7 @@ void ASCharacter::MoveForward(float Val)
 
 void ASCharacter::MoveRight(float Val)
 {
+	// If camera is focusing on an actor, do nothing
 	if (!GetCameraFocusing())
 	{
 		if (Val != 0.f)
@@ -207,6 +209,7 @@ void ASCharacter::MoveRight(float Val)
 
 void ASCharacter::AddControllerYawInput(float Val)
 {
+	// If camera is focusing on an actor, do nothing
 	if (!GetCameraFocusing())
 	{
 		this->APawn::AddControllerYawInput(Val);
@@ -216,6 +219,7 @@ void ASCharacter::AddControllerYawInput(float Val)
 
 void ASCharacter::AddControllerPitchInput(float Val)
 {
+	// If camera is focusing on an actor, do nothing
 	if (!GetCameraFocusing())
 	{
 		this->APawn::AddControllerPitchInput(Val);
@@ -671,7 +675,7 @@ void ASCharacter::PawnClientRestart()
 	SetCurrentWeapon(CurrentWeapon);
 }
 
-
+/// Check if we are currently focusing on an actor
 bool ASCharacter::GetCameraFocusing() const
 {
 	if (APlayerController* PC = Cast<APlayerController>(GetController()))
@@ -681,8 +685,10 @@ bool ASCharacter::GetCameraFocusing() const
 			return CameraManager->IsFocusing();
 		}
 	}
+
 	return false;
 }
+
 
 void ASCharacter::OnReload()
 {

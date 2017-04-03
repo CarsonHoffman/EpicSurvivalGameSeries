@@ -41,6 +41,7 @@ void ASPlayerCameraManager::BeginPlay()
 
 void ASPlayerCameraManager::UpdateCamera(float DeltaTime)
 {
+	// Zooming block
 	ASCharacter* MyPawn = PCOwner ? Cast<ASCharacter>(PCOwner->GetPawn()) : nullptr;
 	if (MyPawn)
 	{
@@ -59,6 +60,7 @@ void ASPlayerCameraManager::UpdateCamera(float DeltaTime)
 		}
 	}
 
+	// Focusing block
 	if (MyPawn && bFocusing)
 	{
 		FRotator RotateTo = TargetActor ? UKismetMathLibrary::FindLookAtRotation(MyPawn->GetCameraComponent()->GetComponentLocation(), TargetActor->GetActorLocation()) : OriginalRotation;
@@ -103,7 +105,7 @@ void ASPlayerCameraManager::PerformZooming(float TargetFOV, float DeltaTime, flo
 	SetFOV(DefaultFOV);
 }
 
-void ASPlayerCameraManager::LookAtActor(AActor* Actor, float TimeToFocusOnActor)
+void ASPlayerCameraManager::LookAtActor(AActor* Actor, float TimeInSecondsToFocusOnActor)
 {
 	bWantsToZoom = true;
 	bFocusing = true;
@@ -116,7 +118,7 @@ void ASPlayerCameraManager::LookAtActor(AActor* Actor, float TimeToFocusOnActor)
 	}
 
 	FTimerHandle Handle;
-	GetWorld()->GetTimerManager().SetTimer(Handle, this, &ASPlayerCameraManager::StopLookingAtActor, TimeToFocusOnActor, false);
+	GetWorld()->GetTimerManager().SetTimer(Handle, this, &ASPlayerCameraManager::StopLookingAtActor, TimeInSecondsToFocusOnActor, false);
 }
 
 bool ASPlayerCameraManager::IsFocusing()
